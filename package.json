@@ -15,10 +15,12 @@
     "axios": "^1.8.4",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "node-tesseract-ocr": "^2.2.1",
     "pg": "^8.14.1",
     "puppeteer": "^24.4.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-proxy": "^1.0.2",
+    "sharp": "^0.33.5",
     "socket.io": "^4.8.1",
     "tesseract.js": "^6.0.0"
   }

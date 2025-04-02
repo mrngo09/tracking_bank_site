@@ -81,7 +81,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   // const base64Data = data.c.b64.replace(/^data:image\/\w+;base64,/, "");
   // const buffer = Buffer.from(base64Data, "base64");
   // fs.writeFileSync("output.png", buffer);
-  await handleCaptcha(__dirname + "/captcha_keyword.png");
+  console.log(__dirname + `\\captcha_keyword.png`);
+  
+  await handleCaptcha(__dirname + "\\captcha_keyword.png");
   // console.log("API Response từ domain khác:", data);
 
   // // Chụp ảnh khu vực cửa sổ đăng nhập
