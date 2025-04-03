@@ -1,14 +1,16 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-// const express = require("express");
+
+import sharp from "sharp"; // const express = require("express");
 // const { Pool } = require("pg");
 import puppeteer from "puppeteer";
 import * as fs from "fs";
+import path from "path";
 import { fileURLToPath } from "url";
-import { dirname } from "path";
 
+// Get __dirname equivalent in ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-import { createWorker } from "tesseract.js";
+const __dirname = path.dirname(__filename);
+import { createWorker, OEM } from "tesseract.js";
 // const app = express();
 
 // Kết nối PostgreSQL
@@ -23,7 +25,7 @@ import { createWorker } from "tesseract.js";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Hàm thu thập dữ liệu từ trang web Rik (ví dụ sử dụng Puppeteer)
-(async function main() {
+var main = async () => {
   const browser = await puppeteer.launch({
     headless: false,
     slowMo: 100,
@@ -40,6 +42,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
     if (url.includes(apiUrlCaptcha)) {
       const data = await response.json();
       base64Data = data.c.b64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+      fs.writeFileSync("output.png", buffer);
+
       fs.writeFileSync("api-data.json", JSON.stringify(data, null, 2));
       // console.log(base64Data);
     }
@@ -49,6 +54,7 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   // getPosition(page);
   //click btn login to open login form
   await page.mouse.click(470, 385, { button: "left" }); // Di chuyển chuột đến tọa độ
+  await handleCaptcha("output.png");
 
   // // click and type username
   // await page.mouse.click(400, 222, { button: "left" }); // Di chuyển chuột đến tọa độ
@@ -62,7 +68,6 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   // // //xuly captcha
   // // //loading............
-  // // //handleCaptcha();
 
   // // click and type captcha
   // await page.mouse.click(400, 360, { button: "left" });
@@ -81,9 +86,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   // const base64Data = data.c.b64.replace(/^data:image\/\w+;base64,/, "");
   // const buffer = Buffer.from(base64Data, "base64");
   // fs.writeFileSync("output.png", buffer);
-  console.log(__dirname + `\\captcha_keyword.png`);
-  
-  await handleCaptcha(__dirname + "\\captcha_keyword.png");
+  // console.log(__dirname + `\\captcha_keyword.png`);
+
   // console.log("API Response từ domain khác:", data);
 
   // // Chụp ảnh khu vực cửa sổ đăng nhập
@@ -120,9 +124,9 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   // });
 
   // console.log("Đã chụp ảnh cửa sổ đăng nhập vào file login_window.png");
-  // await browser.close();
+  await browser.close();
   // await getPosition(page);
-})();
+};
 async function getPosition(page) {
   const canvasExists = await page.evaluate(() => {
     const canvas = document.querySelector("#GameCanvas");
@@ -141,13 +145,23 @@ async function getPosition(page) {
 }
 
 async function handleCaptcha(fileName) {
-  const worker = await createWorker();
-  // await worker.load();
-  await worker.reinitialize("eng");
-  const {
-    data: { text },
-  } = await worker.recognize(fileName);
-  console.log("Ký tự captcha:", text);
+  const preprocessedImagePath = path.join(__dirname, "preprocessed.png");
+  await sharp(fileName)
+    .grayscale()
+    .resize({ width: 200, height: 50, fit: "fill" })
+    // .normalize({ lower: 5, upper: 95 })
+    .toFile(preprocessedImagePath);
+
+  const worker = await createWorker("eng", OEM.TESSERACT_LSTM_COMBINED, {
+    legacyCore: true,
+    legacyLang: true,
+  });
+
+  let data = await worker.recognize(fileName);
+  console.log("Ký tự captcha1:", data.data.text);
+
+  data = await worker.recognize(preprocessedImagePath);
+  console.log("Ký tự captcha2:", data.data.text);
   await worker.terminate();
 }
 
@@ -167,3 +181,5 @@ async function handleCaptcha(fileName) {
 
 //   console.log("Server chạy trên cổng 3000");
 // });
+
+main();
